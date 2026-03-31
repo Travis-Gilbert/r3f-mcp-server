@@ -5,12 +5,13 @@
  * Includes Theseus-specific evidence visualization.
  *
  * Tools:
- *   r3f_list_scenes      List all available scenes
- *   r3f_get_scene        Get a scene by ID (full JSON graph)
- *   r3f_create_scene     Create a new scene from scratch
- *   r3f_patch_scene      Apply structured mutations to a scene
- *   r3f_delete_scene     Remove a scene
- *   r3f_create_from_evidence  (Theseus) Generate scene from evidence path
+ *   r3f_list_scenes          List all available scenes
+ *   r3f_get_scene            Get a scene by ID (full JSON graph)
+ *   r3f_create_scene         Create a new scene from scratch
+ *   r3f_patch_scene          Apply structured mutations to a scene
+ *   r3f_delete_scene         Remove a scene
+ *   r3f_create_from_evidence (Theseus) Generate scene from evidence path
+ *   r3f_evaluate_scene       Run design heuristics on a scene
  */
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import {
@@ -28,13 +29,14 @@ import {
   applyPatch,
 } from "./services/scene-store.js";
 import { createEvidenceScene } from "./services/theseus-scenes.js";
+import { evaluateScene } from "./services/design-evaluator.js";
 import type { SceneGraph } from "./types.js";
 
 // ── Server ──
 
 const server = new McpServer({
   name: "r3f-mcp-server",
-  version: "1.0.0",
+  version: "1.1.0",
 });
 
 // ── Tool: r3f_list_scenes ──
@@ -422,6 +424,63 @@ Returns:
   }
 );
 
+// ── Tool: r3f_evaluate_scene ──
+
+const EvaluateSceneSchema = z.object({
+  id: z.string().describe("Scene ID to evaluate"),
+}).strict();
+
+server.registerTool(
+  "r3f_evaluate_scene",
+  {
+    title: "Evaluate Scene Design",
+    description: `Run design heuristics on a scene and return actionable critique.
+
+Checks five categories:
+- Visual hierarchy: equal-weight detection, conclusion node dominance
+- Spacing: minimum node distance, excessive spread
+- Edge crossings: 2D projection intersection count
+- Design tokens: Theseus color palette compliance
+- Camera: framing relative to scene extent
+
+Returns a score (0-100) and a list of findings, each with severity
+(info/warning/error), category, message, suggestion, and affected
+node IDs.
+
+Use this after r3f_create_from_evidence or r3f_create_scene to check
+whether the layout communicates the intended meaning clearly.
+
+Args:
+  id (string): Scene ID to evaluate
+
+Returns:
+  { scene_id, score, summary, findings: [...] }`,
+    inputSchema: EvaluateSceneSchema,
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+  },
+  async ({ id }: z.infer<typeof EvaluateSceneSchema>) => {
+    const scene = getScene(id);
+    if (!scene) {
+      return {
+        content: [{ type: "text", text: `Error: Scene "${id}" not found` }],
+        isError: true,
+      };
+    }
+
+    const result = evaluateScene(scene);
+
+    return {
+      content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+      structuredContent: result as unknown as Record<string, unknown>,
+    };
+  }
+);
+
 // ── Transport ──
 
 async function runHTTP(): Promise<void> {
@@ -430,7 +489,7 @@ async function runHTTP(): Promise<void> {
 
   // Health check
   app.get("/health", (_req, res) => {
-    res.json({ status: "ok", server: "r3f-mcp-server", version: "1.0.0" });
+    res.json({ status: "ok", server: "r3f-mcp-server", version: "1.1.0" });
   });
 
   // MCP endpoint (stateless, one transport per request)
