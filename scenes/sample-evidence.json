@@ -1,0 +1,79 @@
+{
+  "id": "sample-evidence",
+  "name": "Sample: Shannon to Hamming",
+  "description": "Example evidence path connecting information theory to error correction",
+  "camera": {
+    "position": [0, 3, 14],
+    "target": [0, 0, 0],
+    "fov": 50
+  },
+  "nodes": [
+    {
+      "id": "obj-142",
+      "type": "sphere",
+      "position": [-6, 0, 0],
+      "color": "#2D5F6B",
+      "label": "Shannon (1948)",
+      "scale": 1.0,
+      "domain": { "object_type": "source", "role": "premise" }
+    },
+    {
+      "id": "obj-507",
+      "type": "torus",
+      "position": [-2, 1.5, 0],
+      "color": "#7B5EA7",
+      "label": "Information entropy",
+      "scale": 0.7,
+      "domain": { "object_type": "concept", "role": "bridge" }
+    },
+    {
+      "id": "obj-891",
+      "type": "sphere",
+      "position": [2, 1.5, 0],
+      "color": "#2D5F6B",
+      "label": "Hamming (1950)",
+      "scale": 1.0,
+      "domain": { "object_type": "source", "role": "premise" }
+    },
+    {
+      "id": "obj-1204",
+      "type": "torus",
+      "position": [6, 0, 0],
+      "color": "#7B5EA7",
+      "label": "Error correction",
+      "scale": 1.2,
+      "domain": { "object_type": "concept", "role": "conclusion" }
+    }
+  ],
+  "edges": [
+    {
+      "from": "obj-142",
+      "to": "obj-507",
+      "color": "#4A8A96",
+      "width": 2.8,
+      "dashed": false,
+      "domain": { "signal": "sbert", "strength": 0.91 }
+    },
+    {
+      "from": "obj-507",
+      "to": "obj-891",
+      "color": "#2D5F6B",
+      "width": 2.4,
+      "dashed": false,
+      "domain": { "signal": "entity_match", "strength": 0.87 }
+    },
+    {
+      "from": "obj-891",
+      "to": "obj-1204",
+      "color": "#4A8A96",
+      "width": 2.6,
+      "dashed": false,
+      "domain": { "signal": "sbert", "strength": 0.89 }
+    }
+  ],
+  "environment": {
+    "background": "#0f1012",
+    "ambientLight": 0.4,
+    "gridVisible": true
+  }
+}
